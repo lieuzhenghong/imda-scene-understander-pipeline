@@ -1,0 +1,2 @@
+boundingBox[] normalizedVertices
+string name
