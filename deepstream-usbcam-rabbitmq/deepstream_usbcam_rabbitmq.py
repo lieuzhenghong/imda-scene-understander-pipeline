@@ -1,16 +1,16 @@
 #!/usr/bin/env python3
 
+from optparse import OptionParser
+import pyds
+from common.utils import long_to_int
+from common.bus_call import bus_call
+from common.is_aarch_64 import is_aarch64
+from gi.repository import GObject, Gst
+import gi
 import sys
 sys.path.append('../')
-import gi
 gi.require_version('Gst', '1.0')
-from gi.repository import GObject, Gst
-from common.is_aarch_64 import is_aarch64
-from common.bus_call import bus_call
-from common.utils import long_to_int
 
-import pyds
-from optparse import OptionParser
 
 # Global variables
 MAX_TIME_STAMP_LEN = 32
@@ -29,24 +29,27 @@ PGIE_CONFIG_FILE = None
 PROTO_LIB = None
 
 # Callback function for deep-copying an NvDsEventMsgMeta struct
-def meta_copy_func(data,user_data):
+
+
+def meta_copy_func(data, user_data):
     # Cast data to pyds.NvDsUserMeta
-    user_meta=pyds.NvDsUserMeta.cast(data)
-    src_meta_data=user_meta.user_meta_data
+    user_meta = pyds.NvDsUserMeta.cast(data)
+    src_meta_data = user_meta.user_meta_data
     # Cast src_meta_data to pyds.NvDsEventMsgMeta
-    srcmeta=pyds.NvDsEventMsgMeta.cast(src_meta_data)
+    srcmeta = pyds.NvDsEventMsgMeta.cast(src_meta_data)
     # Duplicate the memory contents of srcmeta to dstmeta
     # First use pyds.get_ptr() to get the C address of srcmeta, then
     # use pyds.memdup() to allocate dstmeta and copy srcmeta into it.
     # pyds.memdup returns C address of the allocated duplicate.
-    dstmeta_ptr=pyds.memdup(pyds.get_ptr(srcmeta), sys.getsizeof(pyds.NvDsEventMsgMeta))
+    dstmeta_ptr = pyds.memdup(pyds.get_ptr(
+        srcmeta), sys.getsizeof(pyds.NvDsEventMsgMeta))
     # Cast the duplicated memory to pyds.NvDsEventMsgMeta
-    dstmeta=pyds.NvDsEventMsgMeta.cast(dstmeta_ptr)
+    dstmeta = pyds.NvDsEventMsgMeta.cast(dstmeta_ptr)
 
     # Duplicate contents of ts field. Note that reading srcmeat.ts
     # returns its C address. This allows to memory operations to be
     # performed on it.
-    dstmeta.ts=pyds.memdup(srcmeta.ts, MAX_TIME_STAMP_LEN+1)
+    dstmeta.ts = pyds.memdup(srcmeta.ts, MAX_TIME_STAMP_LEN+1)
 
     # Copy the sensorStr. This field is a string property.
     # The getter (read) returns its C address. The setter (write)
@@ -56,39 +59,42 @@ def meta_copy_func(data,user_data):
     # the reference to a string object and the assignment inside the binder copies content.
     # dstmeta.sensorStr=pyds.get_string(srcmeta.sensorStr)
 
-    if(srcmeta.objSignature.size>0):
-        dstmeta.objSignature.signature=pyds.memdup(srcmeta.objSignature.signature,srcMeta.objSignature.size)
-        dstmeta.objSignature.size = srcmeta.objSignature.size;
+    if(srcmeta.objSignature.size > 0):
+        dstmeta.objSignature.signature = pyds.memdup(
+            srcmeta.objSignature.signature, srcMeta.objSignature.size)
+        dstmeta.objSignature.size = srcmeta.objSignature.size
 
-    if(srcmeta.extMsgSize>0):
-        if(srcmeta.objType==pyds.NvDsObjectType.NVDS_OBJECT_TYPE_VEHICLE):
-            srcobj = pyds.NvDsVehicleObject.cast(srcmeta.extMsg);
-            obj = pyds.alloc_nvds_vehicle_object();
-            obj.type=pyds.get_string(srcobj.type)
-            obj.make=pyds.get_string(srcobj.make)
-            obj.model=pyds.get_string(srcobj.model)
-            obj.color=pyds.get_string(srcobj.color)
+    if(srcmeta.extMsgSize > 0):
+        if(srcmeta.objType == pyds.NvDsObjectType.NVDS_OBJECT_TYPE_VEHICLE):
+            srcobj = pyds.NvDsVehicleObject.cast(srcmeta.extMsg)
+            obj = pyds.alloc_nvds_vehicle_object()
+            obj.type = pyds.get_string(srcobj.type)
+            obj.make = pyds.get_string(srcobj.make)
+            obj.model = pyds.get_string(srcobj.model)
+            obj.color = pyds.get_string(srcobj.color)
             obj.license = pyds.get_string(srcobj.license)
             obj.region = pyds.get_string(srcobj.region)
-            dstmeta.extMsg = obj;
+            dstmeta.extMsg = obj
             dstmeta.extMsgSize = sys.getsizeof(pyds.NvDsVehicleObject)
-        if(srcmeta.objType==pyds.NvDsObjectType.NVDS_OBJECT_TYPE_PERSON):
-            srcobj = pyds.NvDsPersonObject.cast(srcmeta.extMsg);
+        if(srcmeta.objType == pyds.NvDsObjectType.NVDS_OBJECT_TYPE_PERSON):
+            srcobj = pyds.NvDsPersonObject.cast(srcmeta.extMsg)
             obj = pyds.alloc_nvds_person_object()
             obj.age = srcobj.age
-            obj.gender = pyds.get_string(srcobj.gender);
+            obj.gender = pyds.get_string(srcobj.gender)
             obj.cap = pyds.get_string(srcobj.cap)
             obj.hair = pyds.get_string(srcobj.hair)
-            obj.apparel = pyds.get_string(srcobj.apparel);
-            dstmeta.extMsg = obj;
-            dstmeta.extMsgSize = sys.getsizeof(pyds.NvDsVehicleObject);
+            obj.apparel = pyds.get_string(srcobj.apparel)
+            dstmeta.extMsg = obj
+            dstmeta.extMsgSize = sys.getsizeof(pyds.NvDsVehicleObject)
 
     return dstmeta
 
 # Callback function for freeing an NvDsEventMsgMeta instance
-def meta_free_func(data,user_data):
-    user_meta=pyds.NvDsUserMeta.cast(data)
-    srcmeta=pyds.NvDsEventMsgMeta.cast(user_meta.user_meta_data)
+
+
+def meta_free_func(data, user_data):
+    user_meta = pyds.NvDsUserMeta.cast(data)
+    srcmeta = pyds.NvDsEventMsgMeta.cast(user_meta.user_meta_data)
 
     # pyds.free_buffer takes C address of a buffer and frees the memory
     # It's a NOP if the address is NULL
@@ -96,7 +102,7 @@ def meta_free_func(data,user_data):
     pyds.free_buffer(srcmeta.sensorStr)
 
     if(srcmeta.objSignature.size > 0):
-        pyds.free_buffer(srcmeta.objSignature.signature);
+        pyds.free_buffer(srcmeta.objSignature.signature)
         srcmeta.objSignature.size = 0
 
     '''
@@ -118,6 +124,7 @@ def meta_free_func(data,user_data):
         pyds.free_gbuffer(srcmeta.extMsg);
         srcmeta.extMsgSize = 0;
     '''
+
 
 def generate_event_msg_meta(data, class_id):
     '''
@@ -147,7 +154,7 @@ def generate_event_msg_meta(data, class_id):
     '''
 
     meta.type = pyds.NvDsEventType.NVDS_EVENT_ENTRY
-    meta.objType = pyds.NvDsObjectType.NVDS_OBJECT_TYPE_CUSTOM 
+    meta.objType = pyds.NvDsObjectType.NVDS_OBJECT_TYPE_CUSTOM
     # TODO we need to allocate memory and generate custom metadata
     # See above for how to do it
     meta.objClassId = class_id
@@ -158,10 +165,10 @@ def generate_event_msg_meta(data, class_id):
 def osd_sink_pad_buffer_probe(pad, info, u_data):
     frame_number = 0
     obj_counter = {
-        PGIE_CLASS_ID_VEHICLE:0,
-        PGIE_CLASS_ID_PERSON:0,
-        PGIE_CLASS_ID_BICYCLE:0,
-        PGIE_CLASS_ID_ROADSIGN:0
+        PGIE_CLASS_ID_VEHICLE: 0,
+        PGIE_CLASS_ID_PERSON: 0,
+        PGIE_CLASS_ID_BICYCLE: 0,
+        PGIE_CLASS_ID_ROADSIGN: 0
     }
     gst_buffer = info.get_buffer()
     if not gst_buffer:
@@ -182,7 +189,7 @@ def osd_sink_pad_buffer_probe(pad, info, u_data):
             # Note that l_frame.data needs a cast to pyds.NvDsFrameMeta
             # The casting is done by pyds.NvDSFrameMeta.cast()
             # The casting also keeps ownership of the underlying memory
-            # in the C code, so the Python garbage collection 
+            # in the C code, so the Python garbage collection
             # will leave it alone
             frame_meta = pyds.NvDsFrameMeta.cast(l_frame.data)
         except StopIteration:
@@ -195,7 +202,7 @@ def osd_sink_pad_buffer_probe(pad, info, u_data):
                 obj_meta = pyds.NvDsObjectMeta.cast(l_obj.data)
             except StopIteration:
                 continue
-            
+
             obj_counter[obj_meta.class_id] += 1
 
             if ((frame_number % 30) == 0):
@@ -209,8 +216,8 @@ def osd_sink_pad_buffer_probe(pad, info, u_data):
                 # See also the struct fields here (C++ API reference):
                 # https://docs.nvidia.com/metropolis/deepstream/5.0/dev-guide/DeepStream_Development_Guide/baggage/structNvDsEventMsgMeta.html
                 msg_meta = pyds.alloc_nvds_event_msg_meta()
-                msg_meta.bbox.top =  obj_meta.rect_params.top
-                msg_meta.bbox.left =  obj_meta.rect_params.left
+                msg_meta.bbox.top = obj_meta.rect_params.top
+                msg_meta.bbox.left = obj_meta.rect_params.left
                 msg_meta.bbox.width = obj_meta.rect_params.width
                 msg_meta.bbox.height = obj_meta.rect_params.height
                 msg_meta.frameId = frame_number
@@ -221,14 +228,15 @@ def osd_sink_pad_buffer_probe(pad, info, u_data):
                 # No we can't this is the thing that actually sends it out
                 # TODO I need to understand what this is
                 msg_meta = generate_event_msg_meta(msg_meta, obj_meta.class_id)
-                user_event_meta = pyds.nvds_acquire_user_meta_from_pool(batch_meta)
+                user_event_meta = pyds.nvds_acquire_user_meta_from_pool(
+                    batch_meta)
                 if (user_event_meta):
                     user_event_meta.user_meta_data = msg_meta
                     user_event_meta.base_meta.meta_type = pyds.NvDsMetaType.NVDS_EVENT_MSG_META
-                    # Custom MetaData added to NvDsUserMeta require 
-                    # custom copy and release functions. 
-                    # The MetaData library relies on these custom functions to perform deep-copy of the custom structure, 
-                    # and free allocated resources. 
+                    # Custom MetaData added to NvDsUserMeta require
+                    # custom copy and release functions.
+                    # The MetaData library relies on these custom functions to perform deep-copy of the custom structure,
+                    # and free allocated resources.
                     # These functions are registered as callback function pointers in the NvDsUserMeta structure.
 
                     # Setting callbacks in the event msg meta. The bindings layer
@@ -236,19 +244,21 @@ def osd_sink_pad_buffer_probe(pad, info, u_data):
                     # set of callbacks is supported.
                     # pyds.set_user_copyfunc(user_event_meta, meta_copy_func)
                     # pyds.set_user_releasefunc(user_event_meta, meta_free_func)
-                    pyds.nvds_add_user_meta_to_frame(frame_meta, user_event_meta)
+                    pyds.nvds_add_user_meta_to_frame(
+                        frame_meta, user_event_meta)
                 else:
                     print("Error in attaching event meta to buffer\n")
             try:
-                l_obj=l_obj.next
+                l_obj = l_obj.next
             except StopIteration:
                 break
         try:
-            l_frame=l_frame.next
+            l_frame = l_frame.next
         except StopIteration:
             break
 
-    print(f"Frame Number = {frame_number}, Person Count = {obj_counter[PGIE_CLASS_ID_PERSON]}")
+    print(
+        f"Frame Number = {frame_number}, Person Count = {obj_counter[PGIE_CLASS_ID_PERSON]}")
     return Gst.PadProbeReturn.OK
 
 
@@ -288,15 +298,17 @@ def main(args):
         sink = Gst.ElementFactory.make("fakesink", "fakesink")
     else:
         if is_aarch64():
-            transform = Gst.ElementFactory.make("nvegltransform", "nvegl-transform")
+            transform = Gst.ElementFactory.make(
+                "nvegltransform", "nvegl-transform")
 
         print("Creating EGLSink")
         sink = Gst.ElementFactory.make("nveglglessink", "nvvideo-renderer")
 
-    
     print(f"Playing cam {CAM_PATH}")
-    caps_v4l2src.set_property('caps', Gst.Caps.from_string("video/x-raw, framerate=30/1"))
-    caps_vidconvsrc.set_property('caps', Gst.Caps.from_string("video/x-raw(memory:NVMM)"))
+    caps_v4l2src.set_property(
+        'caps', Gst.Caps.from_string("video/x-raw, framerate=30/1"))
+    caps_vidconvsrc.set_property(
+        'caps', Gst.Caps.from_string("video/x-raw(memory:NVMM)"))
     source.set_property('device', CAM_PATH)
     streammux.set_property('width', 1280)
     streammux.set_property('height', 720)
@@ -316,7 +328,6 @@ def main(args):
 
     # Add sync = false to avoid late frame drops at the display
     sink.set_property('sync', False)
-
 
     # =======================================
     # Add elements to pipeline
@@ -340,12 +351,11 @@ def main(args):
     if is_aarch64() and not NO_DISPLAY:
         pipeline.add(transform)
 
-
     # =======================================
     # Link elements in pipeline
     # =======================================
 
-    print(f"Linking elements in the pipeline...") 
+    print(f"Linking elements in the pipeline...")
     source.link(caps_v4l2src)
     caps_v4l2src.link(vidconvsrc)
     vidconvsrc.link(nvvidconvsrc)
@@ -369,7 +379,9 @@ def main(args):
     else:
         queue2.link(sink)
 
-    # Again, no idea what this does
+    # This links the two queues to the tee element
+    # See this GStreamer link:
+    # https://gstreamer.freedesktop.org/documentation/tutorials/basic/multithreading-and-pad-availability.html?gi-language=c
     sink_pad = queue1.get_static_pad("sink")
     tee_msg_pad = tee.get_request_pad('src_%u')
     tee_render_pad = tee.get_request_pad('src_%u')
@@ -393,11 +405,11 @@ def main(args):
     osdsinkpad = nvosd.get_static_pad("sink")
     if not osdsinkpad:
         sys.stderr.write("Unable to get sink pad of nvosd")
-    
-    osdsinkpad.add_probe(Gst.PadProbeType.BUFFER, 
-                        osd_sink_pad_buffer_probe,
-                        0)
-    
+
+    osdsinkpad.add_probe(Gst.PadProbeType.BUFFER,
+                         osd_sink_pad_buffer_probe,
+                         0)
+
     # =============================================
     # Start playback and listen to events
     # =============================================
@@ -428,6 +440,7 @@ def parse_args():
     MSGCONV_CONFIG_FILE = 'dstest4_msgconv_config.txt'
     PROTO_LIB = '/opt/nvidia/deepstream/deepstream/lib/libnvds_amqp_proto.so'
     return 0
+
 
 if __name__ == "__main__":
     ret = parse_args()
