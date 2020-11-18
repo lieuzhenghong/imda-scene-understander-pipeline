@@ -7,5 +7,5 @@ date: 2nd November 2020
 
 - What is the machine learning model currently running on? How hard is it to get it working on the Jetson?
 - What sort of performance can we get? Do we still get GPU acceleration?
-
+  - yes we can, with TensorRT
 

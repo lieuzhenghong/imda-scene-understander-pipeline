@@ -10,7 +10,7 @@ Introduction
 The DeepStream SDK is a powerful end-to-end pipeline that claims to make
 development easier. Here I examine the pros and cons of DeepStream and
 conclude that we do not need it for our use case. We can get the
-performance
+performance benefits by moving to TensorRT without moving to DeepStream.
 
 DeepStream will be helpful when dealing with complex multi-GPU, multi-stream pipelines
 --------------------------------------------------------------------------------------
@@ -18,11 +18,11 @@ DeepStream will be helpful when dealing with complex multi-GPU, multi-stream pip
 DeepStream is a powerful pipeline that can handle complex multi-GPU,
 multi-stream setups. Because DeepStream is based on GStreamer (written
 in C), I/O becomes blazing fast. However, this comes at a cost of
-\*\*complexity, flexibility, and extensibility. DeepStream SDK locks us
+**complexity, flexibility, and extensibility**. DeepStream SDK locks us
 into its particular GStreamer-based pipeline, which leads to several
 disadvantages:
 
-DeepStream has a steep learning curve
+DeepStream's GStreamer pipeline has a steep learning curve
 -------------------------------------
 
 DeepStream is heavily based on GStreamer, and as such inherits many of
@@ -101,7 +101,7 @@ complexity. We should avoid unnecessary complexity at all costs because
 it acts as a drag on development, making reasoning about and adding to
 our codebase much slower and more difficult.
 
-DeepStream is a powerful (and very complex) pipeline geared for
+DeepStream is a powerful but very complex pipeline geared for
 high-throughput deployments. There seems to be little reason to use
 DeepStream for our use case, as it adds complexity and reduce our
 flexibility for not much return. Given the relatively small scope of our
