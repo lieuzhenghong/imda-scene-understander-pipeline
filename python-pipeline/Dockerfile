@@ -1,19 +1,12 @@
-# From https://ngc.nvidia.com/catalog/containers/nvidia:l4t-pytorch it contains Pytorch v1.5 and torchvision v0.6.0
-FROM nvcr.io/nvidia/l4t-pytorch:r32.4.3-pth1.6-py3
+FROM python:3.6-slim
 
 ARG DEBIAN_FRONTEND=noninteractive
 RUN apt-get -y update && apt-get -y upgrade
 RUN apt-get install -y wget python3-setuptools python3-pip libfreetype6-dev
 
-### Install OpenCV 4.1.0 ###
-RUN apt-get -y install qt5-default
-COPY ./OpenCV-4.1.1-dirty-aarch64.sh .
-RUN ./OpenCV-4.1.1-dirty-aarch64.sh --prefix=/usr/local/ --skip-license && ldconfig
-
 RUN apt-get update && apt-get install -y --no-install-recommends \
 	python3-pip \
 	python3-dev
-
 
 # Install LibRealSense from source
 RUN git clone https://github.com/IntelRealSense/librealsense.git
