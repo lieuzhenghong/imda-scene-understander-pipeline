@@ -1,7 +1,11 @@
+'''
+This module 
+
 # Remember to set
 # export PYTHONPATH=$PYTHONPATH:/usr/local/lib/python3.6/pyrealsense2
 # otherwise you will not see pyrealsense2
 # you will get ModuleNotFoundError
+'''
 
 from io import BytesIO
 import numpy as np
@@ -54,6 +58,23 @@ def send_image_to_server(img):
     return bboxes
 
 
+def display_images(depth_image, color_image):
+    '''
+    Displays image frames that come from the USB camera
+    '''
+    import cv2
+    # Apply colormap on depth image (image must be converted to 8-bit per pixel first)
+    depth_colormap = cv2.applyColorMap(cv2.convertScaleAbs(
+        depth_image, alpha=0.03), cv2.COLORMAP_JET)
+
+    # Stack both images horizontally
+    images = np.hstack((color_image, depth_colormap))
+
+    # Show images
+    cv2.namedWindow('RealSense', cv2.WINDOW_AUTOSIZE)
+    cv2.imshow('RealSense', images)
+    cv2.waitKey(1)
+
 def main():
     import pyrealsense2 as rs
 
@@ -98,24 +119,5 @@ def main():
     finally:
         # Stop streaming
         pipeline.stop()
-
-
-def display_images(depth_image, color_image):
-    '''
-    Displays image frames that come from the USB camera
-    '''
-    import cv2
-    # Apply colormap on depth image (image must be converted to 8-bit per pixel first)
-    depth_colormap = cv2.applyColorMap(cv2.convertScaleAbs(
-        depth_image, alpha=0.03), cv2.COLORMAP_JET)
-
-    # Stack both images horizontally
-    images = np.hstack((color_image, depth_colormap))
-
-    # Show images
-    cv2.namedWindow('RealSense', cv2.WINDOW_AUTOSIZE)
-    cv2.imshow('RealSense', images)
-    cv2.waitKey(1)
-
 
 main()
