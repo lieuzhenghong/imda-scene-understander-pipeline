@@ -9,6 +9,7 @@ This module
 
 from io import BytesIO
 import numpy as np
+import calc_bbox_depths.py
 
 
 def send_image_to_server(img):
@@ -90,7 +91,6 @@ def main():
     try:
         frame_counter = 0
         while True:
-            # for i in range(1):
             # Wait for a coherent pair of frames: depth and color
             frames = pipeline.wait_for_frames()
             frame_counter += 1
@@ -103,18 +103,23 @@ def main():
             depth_image = np.asanyarray(depth_frame.get_data())
             color_image = np.asanyarray(color_frame.get_data())
 
+            # Uncomment this line if you want to see the images
+            # display_images(depth_image, color_image)
+
             print(f"Sending image {frame_counter}...")
             bboxes = send_image_to_server(color_image)
-            print(np.shape(bboxes))
             print(f"Images received!")
 
             # Package to be sent eventually
             package = [bboxes, depth_image]
-            print(len(bboxes))
-            print(np.shape(bboxes), np.shape(depth_image))
-            # print(package)
 
-            # display_images(depth_image, color_image)
+            # FIXME convert bboxes from numpy arrays to tuples
+            # otherwise this function won't work
+            bboxes_and_depths: List[Tuple[BBox, float]] = \
+            calculate_bbox_depths.calc_bbox_depths(package)
+
+            # TODO Send it out over AQMP/RabbitMQ
+            # then we're done on this end
 
     finally:
         # Stop streaming

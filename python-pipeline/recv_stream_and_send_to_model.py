@@ -27,46 +27,48 @@ def recv_all(msg_len):
     full_data.seek(0)
     return full_data
 
-with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    server_address = ('localhost', 6000)
-    sock.bind(server_address)
-    sock.listen(1)
+def main():
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        server_address = ('localhost', 6000)
+        sock.bind(server_address)
+        sock.listen(1)
 
-    try:
-        while True:
-            print('waiting for a connection')
-            connection, client_address = sock.accept()
+        try:
+            while True:
+                print('waiting for a connection')
+                connection, client_address = sock.accept()
 
-            try:
-                print(f"Connection from: ", client_address)
+                try:
+                    print(f"Connection from: ", client_address)
 
-                b_msg_len = connection.recv(HEADER_SIZE)
-                msg_len = int(b_msg_len.decode("utf-8"))
-                print(msg_len)
+                    b_msg_len = connection.recv(HEADER_SIZE)
+                    msg_len = int(b_msg_len.decode("utf-8"))
+                    print(msg_len)
 
-                # receive the data in small chunks
-                full_data = recv_all(msg_len)
-                print("All data received!")
+                    # receive the data in small chunks
+                    full_data = recv_all(msg_len)
+                    print("All data received!")
 
-                # Now sending the data to the ML model
-                print("Sending data to ML model...")
-                full_data.seek(0)
-                img = np.load(full_data, allow_pickle=True)
-                # This is the key: calling the detect function of the model
-                bboxes = detect(img, 0.3, 0.4)[0]
-                # bboxes is a N x 6 numpy array
+                    # Now sending the data to the ML model
+                    print("Sending data to ML model...")
+                    full_data.seek(0)
+                    img = np.load(full_data, allow_pickle=True)
+                    bboxes = detect(img, 0.3, 0.4)[0]
+                    # bboxes is a N x 6 numpy array
 
-                print("Sending data back to the client")
-                bbox_bytes = BytesIO()
-                np.save(bbox_bytes, bboxes)
-                bbox_bytes.seek(0)
-                connection.sendall(bbox_bytes.read())
+                    print("Sending data back to the client")
+                    bbox_bytes = BytesIO()
+                    np.save(bbox_bytes, bboxes)
+                    bbox_bytes.seek(0)
+                    connection.sendall(bbox_bytes.read())
 
-            # Use a try:finally block to close even in the event of an error
-            finally:
-                connection.close()
+                # Use a try:finally block to close even in the event of an error
+                finally:
+                    connection.close()
 
-    finally:
-        print("Closing socket..")
-        sock.close()
+        finally:
+            print("Closing socket..")
+            sock.close()
+
+main()
