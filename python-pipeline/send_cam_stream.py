@@ -9,7 +9,8 @@ This module
 
 from io import BytesIO
 import numpy as np
-import calc_bbox_depths.py
+import calc_bbox_depths
+from recv_depths_bboxes_and_send_to_ec2 import *
 
 
 def send_image_to_server(img):
@@ -120,6 +121,10 @@ def main():
 
             # TODO Send it out over AQMP/RabbitMQ
             # then we're done on this end
+            # first convert to string and send
+            # looks something like this:
+            # [(((2, 2, 639, 479, 1, 2),), 0.4990077426811466), (((0, 0, 5, 3, 2, 2),), 0.5317742705364048)]
+            send_bboxes_and_depths_to_EC2(str(bboxes_and_depths))
 
     finally:
         # Stop streaming

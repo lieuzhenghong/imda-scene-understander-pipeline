@@ -96,7 +96,7 @@ def generate_bb_pixel_mapping(pixel_bb_mapping: Dict[Point, List[BBox]]) -> Dict
 
     return mapping
 
-def resolve_overlapping_points(bb_pixel_mapping: Dict[Tuple[BBox], List[Point]]) -> Dict[Tuple[BBox], List[Point]]:
+def resolve_overlapping_points(bb_pixel_mapping: Dict[Tuple[BBox], List[Point]], depths) -> Dict[Tuple[BBox], List[Point]]:
     '''
     Takes a bb_pixel_mapping and returns a "merged" bb_pixel mapping
     '''
@@ -127,7 +127,7 @@ def calculate_bbox_depths(bbs: List[BBox], depths: np.ndarray) -> List[Tuple[BBo
     '''
     pixel_bb_mapping = generate_pixel_bb_mapping(bbs)
     bb_pixel_mapping = generate_bb_pixel_mapping(pixel_bb_mapping)
-    deconflicted_bb_pixel_mapping = resolve_overlapping_points(bb_pixel_mapping)
+    deconflicted_bb_pixel_mapping = resolve_overlapping_points(bb_pixel_mapping, depths)
 
     # We have the "deconflicted" bb pixel mapping which guarantees that
     # each point will be claimed by at most one bounding box

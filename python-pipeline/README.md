@@ -1,10 +1,13 @@
 ## System architecture overview
 
-Main running on the Jetson host:
-takes in webcam stream, sends the webcam images
-to the ML model running in a Docker on the Jetson,
+The bulk of the architecture runs on the Jetson.
+This bulk which I call the "main" function
+takes in the webcam stream, sends the webcam images
+to the ML model running in a Docker container on the Jetson,
 gets the depth of each object in the scene,
 then sends it out to the central command-and-control server.
+
+
 
 ## Installation instructions
 
@@ -25,5 +28,8 @@ Run with command
 ### Spin up webcam stream client on the Jetson
 
 ### (On EC2 instance) Set up RabbitMQ listener
+
+Pip3 install pika
+
 
 ### (On EC2 instance) Publish ROS2 message on custom ROS2 topic
