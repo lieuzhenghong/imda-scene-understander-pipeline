@@ -1,5 +1,5 @@
 '''
-This module 
+This module sends the image to the server
 
 # Remember to set
 # export PYTHONPATH=$PYTHONPATH:/usr/local/lib/python3.6/pyrealsense2
