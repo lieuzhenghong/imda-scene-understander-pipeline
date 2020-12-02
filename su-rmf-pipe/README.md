@@ -160,17 +160,42 @@ my attempt at getting a Dockerfile working.
 TODO
 
 I have prepared a minimal `Dockerfile` available in the Jetson NX.
+
 (**TODO:** put the Dockerfile into the repository)
 
-Build the container with the command `...`
-Run the container with command `...`
+TODO: streamline this process...
+
+So whichever Dockerfile you use, make sure to do two things:
+
+1. Move `recv_stream_and_send_to_model.py"` into the same folder 
+   as the machine learning model function (in this case `B1_detect.py`)
+2. Set the `ENTRYPOINT` of the `Dockerfile`
+   to `["python3", "-u", "recv_stream_and_send_to_model.py"]`
+
+Build the container with the command `sudo docker build -t testserver .`
+
+Run the container with
+
+``` sh
+sudo docker run --rm --network host --runtime nvidia --name ml_server testserver
+```
+
+You should see some messages spinning up the ML model
+and finally the message `waiting for a connection`:
+
+``` 
+Using CUDA device0 _CudaDeviceProperties(name='Xavier', total_memory=7771MB)
+...
+...
+Model Summary: .... 2.00672e+07 gradients
+waiting for a connection
+```
+
+We are now ready to send the webcam stream to the Docker container.
 
 #### Spin up webcam stream client on the Jetson
 
-TODO
-
-Start the webcam stream using `python3 send_cam_stream.py`
-...
+Start the webcam stream using `python3 send_cam_stream.py`.
 
 ### Set up the EC2 instance
 
@@ -191,7 +216,7 @@ ask Jain for the password.
 Do a `git clone` of this repository and then do `pip3 install pika`
 to install the dependencies for the RabbitMQ listener.
 
-Then run the RabbitMQ listener with `python receive_rabbitMQ.py`.
+Then run the RabbitMQ listener with `python recv_rabbitMQ.py`.
 Run this as a background process so it doesn't quit when you exit the SSH server.
 You should now see the RabbitMQ listener wait for responses:
 

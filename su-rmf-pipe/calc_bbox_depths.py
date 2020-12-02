@@ -1,28 +1,17 @@
 #!/usr/bin/env python3
 
 '''
-What we have right now:
-- bounding boxes in xyxycz (?) format
-- depth data per pixel (numpy array)
+Module to calculate the median distance to each object
+given a list of bounding boxes and pixelwise depth data.
 
-Step one: do semantic segmentation
-Step two: 
+Main driver function is calc_bbox_depths, which
+takes an input of bounding boxes (List[BBox])
+and a 2D array of depths,
+and returns a list of bounding boxes with the
+median distance to each box:
+(List[Tuples[BBox, depth]]).
 
-object map that maps pixels to object IDs...
-(why do I need this?)
-
-Problem now: we have a singular depth value
-for a pixel but we don't know what object it belongs to
-Solution? 
-
-Aaron suggests to take the median of the already-processed bounding boxes
-but I'm not 100% sure that this is correct
-
-I think we do as follows. We first assign each pixel to the set of object IDs.
-Then each pixel we choose which object ID to assign it to.
-
-So maybe something like this
-Hashmap or array?
+A BBox is a [x, y, x, y, f, c] tuple
 '''
 
 import numpy as np
