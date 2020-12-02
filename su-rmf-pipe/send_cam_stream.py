@@ -9,7 +9,7 @@ This module sends the image to the server
 
 from io import BytesIO
 import numpy as np
-import calc_bbox_depths
+from calc_bbox_depths import calculate_bbox_depths
 from recv_depths_bboxes_and_send_to_ec2 import *
 
 
@@ -117,7 +117,7 @@ def main():
             # FIXME convert bboxes from numpy arrays to tuples
             # otherwise this function won't work
             bboxes_and_depths: List[Tuple[BBox, float]] = \
-            calculate_bbox_depths.calc_bbox_depths(package)
+            calculate_bbox_depths(package)
 
             # TODO Send it out over AQMP/RabbitMQ
             # then we're done on this end
