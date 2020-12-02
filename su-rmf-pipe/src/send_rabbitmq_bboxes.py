@@ -13,9 +13,8 @@ def send_bboxes_and_depths_to_EC2(bboxes_and_depths:List[Tuple[BBox, float]]) ->
 
     channel.queue_declare(queue='hello')
 
-    # channel.basic_publish(exchange='', routing_key='hello', body='Hello World!')
-    channel.basic_publish(exchange='', routing_key='hello', body=bboxes_and_depths)
-    print(" [x] Sent 'Hello World!'")
+    channel.basic_publish(exchange='', routing_key='object_detection', body=bboxes_and_depths)
+    print(f" [x] Sent {bboxes_and_depths}!")
     connection.close()
 
 if __name__ == "__main__":
