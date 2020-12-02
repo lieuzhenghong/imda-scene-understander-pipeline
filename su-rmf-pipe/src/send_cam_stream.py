@@ -10,7 +10,7 @@ This module sends the image to the server
 from io import BytesIO
 import numpy as np
 from calc_bbox_depths import calculate_bbox_depths
-from recv_depths_bboxes_and_send_to_ec2 import *
+from send_rabbitmq_bboxes import *
 
 
 def send_image_to_server(img):
