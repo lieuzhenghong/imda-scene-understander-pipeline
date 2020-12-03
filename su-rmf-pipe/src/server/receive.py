@@ -6,7 +6,8 @@ def main():
     channel = connection.channel()
     
     channel.queue_declare(queue='object_detection')
-    channel.queue_declare(queue='lift_detection')
+    channel.queue_declare(queue='lift_safe_entry')
+    channel.queue_declare(queue='lift_tailgate')
 
     def callback_object_detection(ch, method, properties, body):
         print("Object detection queue called")

@@ -91,6 +91,7 @@ def main():
 
     try:
         frame_counter = 0
+
         while True:
             # Wait for a coherent pair of frames: depth and color
             frames = pipeline.wait_for_frames()
@@ -119,11 +120,15 @@ def main():
             bboxes_and_depths: List[Tuple[BBox, float]] = \
             calculate_bbox_depths(package)
 
-            # TODO Send it out over AQMP/RabbitMQ
-            # then we're done on this end
-            # first convert to string and send
-            # looks something like this:
-            # [(((2, 2, 639, 479, 1, 2),), 0.4990077426811466), (((0, 0, 5, 3, 2, 2),), 0.5317742705364048)]
+            # FIXME Refactor to only set up the RabbitMQ
+            # connection once
+            # because connecting everytime is an antipattern
+            #
+            # From the RabbitMQ docs:
+            # Publishers are often long lived: that is, throughout the lifetime
+            # of a publisher it publishes multiple messages. Opening a
+            # connection or
+            # channel (session) to publish a single message is not optimal.
             send_bboxes_and_depths_to_EC2(str(bboxes_and_depths))
 
     finally:
