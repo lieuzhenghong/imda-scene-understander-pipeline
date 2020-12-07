@@ -3,7 +3,7 @@
 In this document I compare the new and old architecture design
 of the Scene Understanding Manager of the VAMA project.
 
-![Old vs new architecture diagram](./img/new_vs_old_architecture_diagram)
+![Old vs new architecture diagram](./img/new_vs_old_architecture_diagram.png)
 
 There are two key differences between the old and new architecture designs:
 
