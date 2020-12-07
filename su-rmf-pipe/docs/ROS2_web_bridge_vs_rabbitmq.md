@@ -6,7 +6,8 @@ How should we send data over the Internet
 from the Jetson NX to the central command-and-control server
 (hosted on an EC2 instance)?
 
-I was tasked to look into using ROS2 
+We are currently using RabbitMQ to do this, 
+but I was tasked by Eric to look into using ROS2 instead.
 
 ## Pros of using ROS2 web bridge
 
