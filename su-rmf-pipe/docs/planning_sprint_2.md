@@ -1,5 +1,9 @@
 # Planning VAMA 2 Sprint 2 (2020-12-09)
 
+## Comments on last sprint
+
+- 
+
 ![New architecture diagram](./img/sprint_2_architecture_diagram.png)
 
 ## Things that have changed since the previous architecture diagram
@@ -28,6 +32,10 @@ This means that we cannot use an EC2 instance for the central server.
 - Answer the questions that I still have
 - Think about how best to collaborate with Xin Zheng (pair programming)
 - Figure out how to test the SUM (since we can't use the EC2 instance)
-- Publish ROS2 topics from the Jetson
 - Figure out what the SUM should do 
 - Develop the SUM (this should be broken down into subtasks)
+- Publish bounding boxes as ROS2 topic 
+- Deploy lift safe entry module on the Jetson
+- Publish lift safe entry check as ROS2 topic
+- Deploy lift tailgate check module on the Jetson
+- Publish lift tailgate check as ROS2 topic
