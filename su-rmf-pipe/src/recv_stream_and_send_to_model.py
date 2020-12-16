@@ -15,7 +15,7 @@ from B1_detect import detect
 
 HEADER_SIZE = 10
 
-def recv_all(msg_len):
+def recv_all(msg_len, connection):
     '''
     Receives data of msg_len in chunks of 4096 bits
     and returns a BytesIO filled with that data
@@ -47,7 +47,7 @@ def main():
                     print(msg_len)
 
                     # receive the data in small chunks
-                    full_data = recv_all(msg_len)
+                    full_data = recv_all(msg_len, connection)
                     print("All data received!")
 
                     # Now sending the data to the ML model

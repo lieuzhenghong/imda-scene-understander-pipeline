@@ -11,86 +11,6 @@ This is a pipeline that allows the Jetson NX device to send information
 to a central command-and-control server as part of IMDA's 
 Virtualised Autonomous Mobile Agent (VAMA 2) robotics project.
 
-Input: image stream from a Intel Realsense depth camera 
-Output: bounding box and depth information of the image,
-published on a 
-[ROS2 topic](https://index.ros.org/doc/ros2/Tutorials/Topics/Understanding-ROS2-Topics/) 
-
-The output is meant to be consumed by 
-RMF Core modules on the central command-and-control server.
-
-
-## Components of the pipeline
-
-There are four main components in the pipeline:
-
-1. Main I/O dispatcher (Python modules)
-2. Object detection ML model (Docker Container)
-3. Depth estimator (Python module)
-4. Message receiver and broadcaster (EC2 instance)
-
-```
-
-                                 Jetson NX
-
-                  +--------------------------------------+
-                  |                                      |
-                  |       RGB image    +--------------+  |
-                  |    +-------------->+              |  |                  Amazon EC2 instance
-                  |    |               |  Docker      |  |
-                  |    |               |  Container   |  |                  +-----------------+
-                  |    |               |  (ML Model)  |  |                  |                 |
-                  |    |               |  (2)         |  |                  |                 |
-                  |    |               +-------+------+  |                  |                 |
-                  | +--+------------+          |         |                  +-------------+   |
-                  | |               |    Bounding boxes  |                  |             |   |
-+---------------+ | |               |          |         |                  |             |   |
-|               | | |               +<---------+         |  Bounding boxes, | RabbitMQ    |   |
-|    Webcam     +---> Main I/O      |                    |   depth data     | receiver    |   |
-|               | | | dispatcher    +-------------------------------------->+ and         |   |
-+---------------+ | | (1)           |                    |  (over RabbitMQ) | ROS2        |   |
-                  | |               +<-----+             |                  | topic       |   |
-                  | +-----+---------+      |             |                  | publisher   |   |
-                  |       |             Depth            |                  | (4)         |   |
-                  |    Bounding         data             |                  +-------------+   |
-                  |    boxes               |             |                  |                 |
-                  |       |                |             |                  |                 |
-                  | +-----v----------------++            |                  |                 |
-                  | |                       |            |                  |                 |
-                  | |  Depth estimator (3)  |            |                  |                 |
-                  | |                       |            |                  +-----------------+
-                  | +-----------------------+            |
-                  +--------------------------------------+
-
-```
-
-The I/O dispatcher (1) does the vast majority of the work.
-It glues together multiple components.
-It takes in the webcam stream, 
-sends the stream to the ML model (2),
-retrieves the bounding boxes from the ML model,
-calculates the distance to each object in the scene (3),
-then sends the bounding boxes and depth data 
-out to the central command-and-control server (4).
-
-The machine learning model (2) 
-runs on a Docker container on the Jetson. 
-This model is built by the AI scientists.
-It takes in an image and returns a list of bounding boxes
-around objects the model has detected.
-
-The message receiver and broadcaster (4) 
-lives on the command-and-control server.
-It is responsible for 
-receiving the data from the I/O dispatcher (1)
-and publishing the data over a ROS2 topic
-to be consumed by RMF Core modules.
-
-I have written a technical deep dive on 
-how the I/O dispatcher (1) communicates with 
-the ML Docker container (2)
-(long story short: Unix sockets).
-This is an optional read.
 
 ## Design goals of the pipeline
 
@@ -160,17 +80,42 @@ my attempt at getting a Dockerfile working.
 TODO
 
 I have prepared a minimal `Dockerfile` available in the Jetson NX.
+
 (**TODO:** put the Dockerfile into the repository)
 
-Build the container with the command `...`
-Run the container with command `...`
+TODO: streamline this process...
+
+So whichever Dockerfile you use, make sure to do two things:
+
+1. Move `recv_stream_and_send_to_model.py"` into the same folder 
+   as the machine learning model function (in this case `B1_detect.py`)
+2. Set the `ENTRYPOINT` of the `Dockerfile`
+   to `["python3", "-u", "recv_stream_and_send_to_model.py"]`
+
+Build the container with the command `sudo docker build -t testserver .`
+
+Run the container with
+
+``` sh
+sudo docker run --rm --network host --runtime nvidia --name ml_server testserver
+```
+
+You should see some messages spinning up the ML model
+and finally the message `waiting for a connection`:
+
+``` 
+Using CUDA device0 _CudaDeviceProperties(name='Xavier', total_memory=7771MB)
+...
+...
+Model Summary: .... 2.00672e+07 gradients
+waiting for a connection
+```
+
+We are now ready to send the webcam stream to the Docker container.
 
 #### Spin up webcam stream client on the Jetson
 
-TODO
-
-Start the webcam stream using `python3 send_cam_stream.py`
-...
+Start the webcam stream using `python3 send_cam_stream.py`.
 
 ### Set up the EC2 instance
 
@@ -191,7 +136,7 @@ ask Jain for the password.
 Do a `git clone` of this repository and then do `pip3 install pika`
 to install the dependencies for the RabbitMQ listener.
 
-Then run the RabbitMQ listener with `python receive_rabbitMQ.py`.
+Then run the RabbitMQ listener with `python recv_rabbitMQ.py`.
 Run this as a background process so it doesn't quit when you exit the SSH server.
 You should now see the RabbitMQ listener wait for responses:
 
