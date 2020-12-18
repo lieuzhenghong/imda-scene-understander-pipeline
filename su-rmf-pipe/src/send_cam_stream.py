@@ -11,9 +11,9 @@ from io import BytesIO
 import numpy as np
 from calc_bbox_depths import calculate_bbox_depths
 from send_rabbitmq_bboxes import *
+import pyrealsense2 as rs
 
-
-def send_image_to_server(img):
+def send_image_to_server(img: np.array) -> np.array:
     '''
     Takes a numpy array and returns an array of bounding boxes
     which is a Nx6 numpy array.
@@ -59,7 +59,6 @@ def send_image_to_server(img):
     bboxes = np.load(full_data, allow_pickle=True)
     return bboxes
 
-
 def display_images(depth_image, color_image):
     '''
     Displays image frames that come from the USB camera
@@ -77,8 +76,10 @@ def display_images(depth_image, color_image):
     cv2.imshow('RealSense', images)
     cv2.waitKey(1)
 
-def main():
-    import pyrealsense2 as rs
+def init_pipeline() -> rs.pipeline:
+    '''
+    Returns a RealSense pipeline
+    '''
 
     # Configure depth and color streams
     pipeline = rs.pipeline()
@@ -88,51 +89,58 @@ def main():
 
     # Start streaming
     pipeline.start(config)
+    return pipeline
 
+def get_frames(pipeline: rs.pipeline) -> (rs.video_frame, rs.video_frame):
+    '''
+    Waits for a composite frame in an established pipeline and returns
+    the depth and color data
+    '''
+    # Wait for a coherent pair of frames: depth and color
+    frames: rs.composite_frame = pipeline.wait_for_frames()
+    depth_frame = frames.get_depth_frame()
+    color_frame = frames.get_color_frame()
+    return depth_frame, color_frame
+
+def loop(pipeline: rs.pipeline) -> None:
+    frame_counter = 0
+    # Wait for a coherent pair of frames: depth and color
+    depth_frame, color_frame = get_frames(pipeline)
+    frame_counter += 1 
+    if not depth_frame or not color_frame:
+        return
+
+    # Convert images to numpy arrays
+    depth_image = np.asanyarray(depth_frame.get_data())
+    color_image = np.asanyarray(color_frame.get_data())
+
+    # TODO get the location from ROS1 listener
+
+    # Uncomment this line if you want to see the images
+    # display_images(depth_image, color_image)
+
+    print(f"Sending image {frame_counter}...")
+    bboxes = send_image_to_server(color_image)
+    print(f"Images received!")
+
+    # Package to be sent eventually
+    package = [bboxes, depth_image]
+
+    # FIXME convert bboxes from numpy arrays to tuples
+    # otherwise this function won't work
+    bboxes_and_depths: List[Tuple[BBox, float]] = \
+    calculate_bbox_depths(package)
+
+    # TODO once we have the depths, publish it (and location) to the ROS2 publisher
+
+def main():
+    pipeline = init_pipeline()
     try:
-        frame_counter = 0
-
         while True:
-            # Wait for a coherent pair of frames: depth and color
-            frames = pipeline.wait_for_frames()
-            frame_counter += 1
-            depth_frame = frames.get_depth_frame()
-            color_frame = frames.get_color_frame()
-            if not depth_frame or not color_frame:
-                continue
-
-            # Convert images to numpy arrays
-            depth_image = np.asanyarray(depth_frame.get_data())
-            color_image = np.asanyarray(color_frame.get_data())
-
-            # Uncomment this line if you want to see the images
-            # display_images(depth_image, color_image)
-
-            print(f"Sending image {frame_counter}...")
-            bboxes = send_image_to_server(color_image)
-            print(f"Images received!")
-
-            # Package to be sent eventually
-            package = [bboxes, depth_image]
-
-            # FIXME convert bboxes from numpy arrays to tuples
-            # otherwise this function won't work
-            bboxes_and_depths: List[Tuple[BBox, float]] = \
-            calculate_bbox_depths(package)
-
-            # FIXME Refactor to only set up the RabbitMQ
-            # connection once
-            # because connecting everytime is an antipattern
-            #
-            # From the RabbitMQ docs:
-            # Publishers are often long lived: that is, throughout the lifetime
-            # of a publisher it publishes multiple messages. Opening a
-            # connection or
-            # channel (session) to publish a single message is not optimal.
-            send_bboxes_and_depths_to_EC2(str(bboxes_and_depths))
-
+            loop(pipeline)
     finally:
         # Stop streaming
         pipeline.stop()
 
-main()
+if __name__ == "__main__":
+    main()
