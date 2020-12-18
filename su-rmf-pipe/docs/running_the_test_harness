@@ -1,0 +1,11 @@
+Python 3.6.12 is required because that's what runs on the Jetson
+and it's also the version of Python that `pyrealsense2` is built for.
+
+Install `pyenv` (see their GitHub page for details)
+and then install Python 3.6.12
+`pyenv install 3.6.12`
+`pyenv global 3.6.12` 
+and then create a virtual env
+
+then source activate it and then run
+`python3 -m pytest -sv`
