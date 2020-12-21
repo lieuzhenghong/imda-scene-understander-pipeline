@@ -44,7 +44,7 @@ def send_image_to_server(img: np.array) -> np.array:
             full_data = BytesIO()
             while True:
                 data = sock.recv(4096)
-                print(len(data))
+                # print(len(data))
                 if not data:
                     print("All data received!")
                     break
