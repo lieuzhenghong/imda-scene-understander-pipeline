@@ -78,7 +78,7 @@ class MockSocket:
         # print(all_bytes)
         print("\nAll bytes sent")
         return
-    def recv(self, nbytes: int) -> List[bytes]:
+    def recv(self, nbytes: int) -> BytesIO:
         self.__generate_bboxes__()
         bbox_bytes = MockSocket.__generate_message__(self.bboxes)
         if self.all_data_sent:
@@ -150,23 +150,68 @@ def test_get_frames():
     assert (np.shape(depth_frame.get_data()) == (640, 480)) 
     assert np.shape(color_frame.get_data()) == (640, 480, 3)
 
-# TODO mock the server, make sure to test different combinations of outputs
 def test_send_image_to_server():
+    '''
+    Integration test:
+    test that `send_image_to_server`
+    succesfully 
+    # FIXME don't mock this
+    '''
     img = np.random.rand(640, 480, 3)
-    bboxes = send_cam_stream.send_image_to_server(img)
-    assert True
+    server_address = ('localhost', 6000)
+    bboxes = send_cam_stream.send_image_to_server(img, server_address)
+    assert np.equal(bboxes, np.array([]))
+
+def test_create_message_messageIsWellFormed():
+    '''
+    Tests that `create_message_from_np_array`
+    creates a well-formed message with a 10-byte long header
+    (with correct message size)
+    and correctly encodes the numpy array
+    '''
+    HEADER_SIZE = 10
+    img = np.ones((640, 480, 3))
+    message = BytesIO()
+    np.save(message, img)
+    message.seek(0)
+    b_msg_len, b_message = send_cam_stream.create_message_from_np_array(img, HEADER_SIZE)
+    assert b_msg_len == bytes(str(f"{7372928:<{HEADER_SIZE}}"), 'utf-8')
+    assert b_message == message.read()
+
+def test_create_socket():
+    # FIXME how do we test this
+    '''
+    Tests that `create_socket` successfully creates a socket 
+    '''
+    socket = send_cam_stream.create_socket()
+    assert False
+
+def test_recv_all():
+    # FIXME test won't actually run since we are mocking the recv function
+    '''
+    Tests that `recv_all` successfully receives a series of Bytes
+    and writes it to a BytesIO
+    '''
+    assert False
 
 def test_canDecodeSuccessfullyNoBBox():
-    # Tests that no errors 
-    img = np.random.rand(640, 480, 3)
-    bboxes = send_cam_stream.send_image_to_server(img)
-    assert np.array_equal(bboxes, np.array([]))
+    '''
+    Tests that `decode_bboxes_bytes`
+    can decode data successfully from a ByteIO
+    when there are no bounding boxes
+    '''
+    message = BytesIO()
+    np.save(message, [])
+    assert np.array_equal(send_cam_stream.decode_bboxes_bytes(message),
+    np.array([]))
 
-'''
-def test_canDecodeSuccessfullyOneBBox():
-    assert True
-    # Tests that no errors 
-    img = np.random.rand(640, 480, 3)
-    bboxes = send_cam_stream.send_image_to_server(img)
-    assert np.array_equal(bboxes, np.array([]))
-'''
+def test_canDecodeSuccessfullyManyBBox():
+    '''
+    Tests that `decode_bboxes_bytes`
+    can decode data successfully from a ByteIO
+    when there are several bounding boxes
+    '''
+    message = BytesIO()
+    np.save(message, np.ones((3, 6)))
+    assert np.array_equal(send_cam_stream.decode_bboxes_bytes(message),
+    np.ones((3, 6)))
