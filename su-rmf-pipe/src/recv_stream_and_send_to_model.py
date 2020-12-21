@@ -56,6 +56,7 @@ def main():
                     img = np.load(full_data, allow_pickle=True)
                     bboxes = detect(img, 0.3, 0.4)[0]
                     # bboxes is a N x 6 numpy array
+                    print(bboxes)
 
                     print("Sending data back to the client")
                     bbox_bytes = BytesIO()
@@ -71,4 +72,4 @@ def main():
             print("Closing socket..")
             sock.close()
 
-main()
+# main()
