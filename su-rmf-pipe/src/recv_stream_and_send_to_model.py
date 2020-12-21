@@ -27,49 +27,62 @@ def recv_all(msg_len, connection):
     full_data.seek(0)
     return full_data
 
-def main():
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        server_address = ('localhost', 6000)
-        sock.bind(server_address)
-        sock.listen(1)
+from typing import Tuple
 
-        try:
-            while True:
-                print('waiting for a connection')
-                connection, client_address = sock.accept()
+def call_detect_function_and_recv_result(b_full_data) -> BytesIO:
+    # Now sending the data to the ML model
+    print("Sending data to ML model...")
+    b_full_data.seek(0)
+    img = np.load(b_full_data, allow_pickle=True)
+    bboxes = detect(img, 0.3, 0.4)[0]
+    # bboxes is a N x 6 numpy array
+    print(bboxes)
 
-                try:
-                    print(f"Connection from: ", client_address)
+    print("Sending data back to the client")
+    bbox_bytes = BytesIO()
+    np.save(bbox_bytes, bboxes)
+    bbox_bytes.seek(0)
+    return bbox_bytes
 
-                    b_msg_len = connection.recv(HEADER_SIZE)
-                    msg_len = int(b_msg_len.decode("utf-8"))
-                    print(msg_len)
 
-                    # receive the data in small chunks
-                    full_data = recv_all(msg_len, connection)
-                    print("All data received!")
+class Listener:
+    def __init__(self, server_addr: Tuple[str, int], 
+                handle_data_fn
+                ):
+        self.server_addr = server_addr
+        self.handle_data_fn = handle_data_fn
+    def decode_message(self, connection) -> BytesIO:
+        b_msg_len = connection.recv(HEADER_SIZE)
+        msg_len = int(b_msg_len.decode("utf-8"))
+        print(msg_len)
+        # receive the data in small chunks
+        full_data = recv_all(msg_len, connection)
+        print("All data received!")
+        return full_data
+    def start_server(self):
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+            sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            sock.bind(self.server_addr)
+            sock.listen(1)
+            try:
+                while True:
+                    print('waiting for a connection')
+                    connection, client_address = sock.accept()
+                    try:
+                        print(f"Connection from: ", client_address)
 
-                    # Now sending the data to the ML model
-                    print("Sending data to ML model...")
-                    full_data.seek(0)
-                    img = np.load(full_data, allow_pickle=True)
-                    bboxes = detect(img, 0.3, 0.4)[0]
-                    # bboxes is a N x 6 numpy array
-                    print(bboxes)
+                        b_full_data = self.decode_message(connection)
+                        b_return_data = self.handle_data_fn(b_full_data)
 
-                    print("Sending data back to the client")
-                    bbox_bytes = BytesIO()
-                    np.save(bbox_bytes, bboxes)
-                    bbox_bytes.seek(0)
-                    connection.sendall(bbox_bytes.read())
+                        connection.sendall(b_return_data.read())
 
-                # Use a try:finally block to close even in the event of an error
-                finally:
-                    connection.close()
-
-        finally:
-            print("Closing socket..")
+                    # Use a try:finally block to close even in the event of an error
+                    finally:
+                        connection.close()
+            finally:
+                print("Closing socket..")
             sock.close()
 
-# main()
+def main():
+    ml_listener = Listener(("localhost", 6000), call_detect_function_and_recv_result)
+    ml_listener.start_server()
