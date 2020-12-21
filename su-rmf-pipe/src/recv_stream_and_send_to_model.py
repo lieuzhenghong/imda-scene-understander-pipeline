@@ -11,25 +11,8 @@ import sys
 from io import BytesIO
 import numpy as np
 
-from B1_detect import detect
-
-HEADER_SIZE = 10
-
-def recv_all(msg_len, connection):
-    '''
-    Receives data of msg_len in chunks of 4096 bits
-    and returns a BytesIO filled with that data
-    '''
-    full_data = BytesIO()
-    while (full_data.getbuffer().nbytes < msg_len):
-        data = connection.recv(4096)
-        full_data.write(data)
-    full_data.seek(0)
-    return full_data
-
-from typing import Tuple
-
 def call_detect_function_and_recv_result(b_full_data) -> BytesIO:
+    from B1_detect import detect
     # Now sending the data to the ML model
     print("Sending data to ML model...")
     b_full_data.seek(0)
@@ -46,17 +29,31 @@ def call_detect_function_and_recv_result(b_full_data) -> BytesIO:
 
 
 class Listener:
+    from typing import Tuple
+    HEADER_SIZE = 10
     def __init__(self, server_addr: Tuple[str, int], 
                 handle_data_fn
                 ):
         self.server_addr = server_addr
         self.handle_data_fn = handle_data_fn
+    @staticmethod
+    def recv_all(msg_len, connection):
+        '''
+        Receives data of msg_len in chunks of 4096 bits
+        and returns a BytesIO filled with that data
+        '''
+        full_data = BytesIO()
+        while (full_data.getbuffer().nbytes < msg_len):
+            data = connection.recv(4096)
+            full_data.write(data)
+        full_data.seek(0)
+        return full_data
     def decode_message(self, connection) -> BytesIO:
-        b_msg_len = connection.recv(HEADER_SIZE)
+        b_msg_len = connection.recv(Listener.HEADER_SIZE)
         msg_len = int(b_msg_len.decode("utf-8"))
         print(msg_len)
         # receive the data in small chunks
-        full_data = recv_all(msg_len, connection)
+        full_data = Listener.recv_all(msg_len, connection)
         print("All data received!")
         return full_data
     def start_server(self):
