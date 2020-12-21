@@ -12,51 +12,68 @@ import numpy as np
 from calc_bbox_depths import calculate_bbox_depths
 from send_rabbitmq_bboxes import *
 import pyrealsense2 as rs
+import socket
 
-def send_image_to_server(img: np.array) -> np.array:
+def create_socket() -> socket.socket:
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    return sock
+
+def create_message_from_np_array(img: np.array, HEADER_SIZE:int = 10) -> (bytes, BytesIO):
+    message = BytesIO()
+    np.save(message, img)
+    msg_len = message.getbuffer().nbytes
+    b_msg_len = bytes(str(f"{msg_len:<{HEADER_SIZE}}"), 'utf-8')
+    message.seek(0)
+    return (b_msg_len, message.read())
+    
+def recv_all(socket: socket.socket) -> BytesIO:
     '''
-    Takes a numpy array and returns an array of bounding boxes
-    which is a Nx6 numpy array.
+    Receives data of msg_len in chunks of 4096 bits
+    and returns a BytesIO filled with that data
     '''
-    import socket
-    import sys
+    full_data = BytesIO()
+    while True:
+        data = socket.recv(4096)
+        if not data:
+            print("All data received!")
+            full_data.seek(0)
+            break
+        full_data.write(data)
+    return full_data
 
-    HEADER_SIZE = 10
-
-    server_address = ('localhost', 6000)
-
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-        sock.connect(server_address)
-        try:
-            message = BytesIO()
-            np.save(message, img)
-
-            msg_len = message.getbuffer().nbytes
-            b_msg_len = bytes(str(f"{msg_len:<{HEADER_SIZE}}"), 'utf-8')
-            sock.sendall(b_msg_len)
-
-            print("Sending message...")
-            message.seek(0)
-            sock.sendall(message.read())
-            print("All sent!")
-
-            # Now receive data
-            full_data = BytesIO()
-            while True:
-                data = sock.recv(4096)
-                # print(len(data))
-                if not data:
-                    print("All data received!")
-                    break
-                full_data.write(data)
-
-        finally:
-            print("Closing connection")
-            sock.close()
-
+def decode_bboxes_bytes(full_data: BytesIO) -> np.array:
     full_data.seek(0)
     assert(full_data.getbuffer().nbytes > 0)
     bboxes = np.load(full_data, allow_pickle=True)
+    return bboxes
+
+def send_and_recv_data_from_socket(server_address: Tuple[str, int],
+                                   data: any, 
+                                   create_message_fn) -> BytesIO:
+    HEADER_SIZE = 10
+    sock = create_socket()
+    sock.connect(server_address)
+    try:
+        b_msg_len, b_message = create_message_fn(data, HEADER_SIZE)
+        sock.sendall(b_msg_len)
+        sock.sendall(b_message)
+        full_data = recv_all(sock)
+    finally:
+        print("Closing connection")
+        sock.close()
+    
+    return full_data
+
+def send_image_to_server(img: np.array, server_address: Tuple[str, int]) -> np.array:
+    '''
+    Sends a colour image to a server at `server_address`.
+    The server will detect objects, if any,
+    and send back bounding boxes (an Nx6 numpy array)
+    '''
+    full_data = send_and_recv_data_from_socket(server_address, 
+                                               img, 
+                                               create_message_from_np_array)
+    bboxes = decode_bboxes_bytes(full_data)
     return bboxes
 
 def display_images(depth_image, color_image):
@@ -120,7 +137,8 @@ def loop(pipeline: rs.pipeline) -> None:
     # display_images(depth_image, color_image)
 
     print(f"Sending image {frame_counter}...")
-    bboxes = send_image_to_server(color_image)
+    server_address = ('localhost', 6000)
+    bboxes = send_image_to_server(color_image, server_address)
     print(f"Images received!")
 
     # Package to be sent eventually
@@ -128,8 +146,8 @@ def loop(pipeline: rs.pipeline) -> None:
 
     # FIXME convert bboxes from numpy arrays to tuples
     # otherwise this function won't work
-    bboxes_and_depths: List[Tuple[BBox, float]] = \
-    calculate_bbox_depths(package)
+    # bboxes_and_depths: List[Tuple[BBox, float]] = \
+    # calculate_bbox_depths(package)
 
     # TODO once we have the depths, publish it (and location) to the ROS2 publisher
 
