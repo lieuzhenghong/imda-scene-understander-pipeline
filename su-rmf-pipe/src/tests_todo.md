@@ -1,0 +1,2 @@
+- Test different number of bounding boxes returned: zero, one, many
+- Test handling connection is broken after halfway receiving data
