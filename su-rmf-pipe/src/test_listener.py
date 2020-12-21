@@ -4,16 +4,17 @@ import numpy as np
 import pytest
 import struct
 
-mockDetector = MagicMock()
-mockDetector.return_value = ['fish', 'cow']
-print(mockDetector())
-
-sys.modules['B1_detect'] = MagicMock()
-sys.modules['B1_detect.detect'] = mockDetector
-import recv_stream_and_send_to_model as listener
+mockModel = MagicMock()
 
 import time
 import multiprocessing
+import importlib
+
+mockDetector = MagicMock(return_value=[[], []])
+mockModel.detect = mockDetector
+print(mockModel.detect())
+sys.modules['B1_detect'] = mockModel
+import recv_stream_and_send_to_model as listener
 
 def test_listener():
     '''
@@ -27,6 +28,7 @@ def test_listener():
     2. calls the mockDetector,
     3. returns the correct result
     '''
+
     import send_cam_stream
     server = multiprocessing.Process(target=listener.main)
     server.start()
@@ -38,11 +40,17 @@ def test_listener():
 
     server.terminate()
     server.join()
-    print(bboxes)
-    print([])
-
+    assert (bboxes.size == 0)
 
 def test_listener_one_object():
+    '''
+    We now change the mockDetector so it returns one object
+    Check that our listener can still handle this
+    '''
+    mockDetector = MagicMock(return_value=[np.ones((1,6)), []])
+    mockModel.detect = mockDetector
+    importlib.reload(listener)
+
     import send_cam_stream
     server = multiprocessing.Process(target=listener.main)
     server.start()
@@ -54,7 +62,7 @@ def test_listener_one_object():
 
     server.terminate()
     server.join()
-    assert(bboxes == [[1,1,1,1,1,1]])
+    assert(bboxes.shape == (1,6))
 
 
 
