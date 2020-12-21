@@ -41,24 +41,46 @@ class MockRealSenseColorFrame:
     def get_data(self):
         return np.random.rand(640, 480, 3)
 
+'''
+class MockServer:
+    def __init__(self, num_bboxes, addr=None):
+        self.addr = addr
+        self.num_bboxes = num_bboxes
+        self.bboxes = []
+    def receive_connection(self):
+        pass
+    def generate_bboxes(self):
+        if self.num_bboxes:
+            self.bboxes = np.random.rand(self.num_bboxes, 6)
+    def sendall(self, bbox_bytes):
+        return MockServer.generate_message(self.bboxes)
+    @staticmethod
+    def generate_message(bboxes):
+        bbox_bytes = BytesIO()
+        np.save(bbox_bytes, bboxes)
+        bbox_bytes.seek(0)
+        return bbox_bytes
+'''
+
 class MockSocket:
     # We need enter and exit methods so that it works with a with block
-    def __init__(self):
+    def __init__(self, addr=None):
         self.all_data_sent = False 
+        self.addr = addr
+        self.num_bboxes = 0
+        self.bboxes = []
     def __enter__(self):
         return self
     def connect(self, addr):
-        # should return another socket
-        return MockSocket()
+        self.addr = addr
+        return self.addr
     def sendall(self, all_bytes):
         # print(all_bytes)
         print("\nAll bytes sent")
         return
     def recv(self, nbytes: int) -> List[bytes]:
-        bboxes = np.random.rand(1, 6)
-        bbox_bytes = BytesIO()
-        np.save(bbox_bytes, bboxes)
-        bbox_bytes.seek(0)
+        self.__generate_bboxes__()
+        bbox_bytes = MockSocket.__generate_message__(self.bboxes)
         if self.all_data_sent:
             return None
         else:
@@ -67,6 +89,15 @@ class MockSocket:
     def close(self):
         print("\nSocket connection closed")
         return
+    def __generate_bboxes__(self):
+        if self.num_bboxes:
+            self.bboxes = np.random.rand(self.num_bboxes, 6)
+    @staticmethod
+    def __generate_message__(bboxes):
+        bbox_bytes = BytesIO()
+        np.save(bbox_bytes, bboxes)
+        bbox_bytes.seek(0)
+        return bbox_bytes
     def __exit__(self, *args, **kwargs):
         pass
 
@@ -125,10 +156,17 @@ def test_send_image_to_server():
     bboxes = send_cam_stream.send_image_to_server(img)
     assert True
 
-'''
 def test_canDecodeSuccessfullyNoBBox():
-    assert False
+    # Tests that no errors 
+    img = np.random.rand(640, 480, 3)
+    bboxes = send_cam_stream.send_image_to_server(img)
+    assert np.array_equal(bboxes, np.array([]))
 
+'''
 def test_canDecodeSuccessfullyOneBBox():
-    assert False
+    assert True
+    # Tests that no errors 
+    img = np.random.rand(640, 480, 3)
+    bboxes = send_cam_stream.send_image_to_server(img)
+    assert np.array_equal(bboxes, np.array([]))
 '''
