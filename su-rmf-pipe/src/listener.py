@@ -44,20 +44,37 @@ class Listener:
         print("All data received!")
         b_return_data = self.handle_data_fn(b_full_data)
         self.connection.sendall(b_return_data.read())
+    def init_socket(self):
+        '''
+        Creates a socket,
+        binds it to the server addr
+        and listens for connections
+        '''
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        sock.bind(self.server_addr)
+        sock.listen(1)
+        self.sock = sock
+        return sock
+    def wait_for_connection(self):
+        '''
+        Waits for any incoming connection
+        When one is received,
+        handles it and then closes the connection
+        '''
+        # self.connection is a new socket object
+        # and client_address is the address bound to the socket
+        # on the other hand of the connection
+        self.connection, client_address = self.sock.accept()
+        print(f"Connection from: ", client_address)
+        try:
+            self.handle_connection()
+        finally:
+            self.connection.close()
     def start_server(self):
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-            sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-            sock.bind(self.server_addr)
-            sock.listen(1)
-            try:
-                while True:
-                    print('waiting for a connection')
-                    self.connection, client_address = sock.accept()
-                    print(f"Connection from: ", client_address)
-                    try:
-                        self.handle_connection()
-                    finally:
-                        self.connection.close()
-            finally:
-                print("Closing socket..")
-            sock.close()
+        try:
+            self.init_socket()
+            while True:
+                self.wait_for_connection()
+        finally:
+            self.sock.close()
