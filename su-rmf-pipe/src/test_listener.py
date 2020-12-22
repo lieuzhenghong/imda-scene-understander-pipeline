@@ -16,7 +16,7 @@ print(mockModel.detect())
 sys.modules['B1_detect'] = mockModel
 import recv_stream_and_send_to_model as listener
 
-def test_listener():
+def test_recv_stream_and_send_to_model_integration():
     '''
     Full integration test.
     Spin up the server as a thread.
@@ -42,7 +42,7 @@ def test_listener():
     server.join()
     assert (bboxes.size == 0)
 
-def test_listener_one_object():
+def test_recv_stream_and_send_to_model_one_object():
     '''
     We now change the mockDetector so it returns one object
     Check that our listener can still handle this
@@ -64,7 +64,29 @@ def test_listener_one_object():
     server.join()
     assert(bboxes.shape == (1,6))
 
+def test_multiple_recv():
+    '''
+    Test if the server can handle multiple sequential requests
+    '''
+    mockDetector = MagicMock(return_value=[np.ones((1,6)), []])
+    mockModel.detect = mockDetector
+    importlib.reload(listener)
 
+    import send_cam_stream
+    server = multiprocessing.Process(target=listener.main)
+    server.start()
+
+    server_addr = ('localhost', 6000)
+    img = np.random.rand(640, 480, 3)
+    bboxes = send_cam_stream.send_image_to_server(img, server_addr)
+    print(bboxes)
+    bboxes2 = send_cam_stream.send_image_to_server(img, server_addr)
+    print(bboxes2)
+
+    server.terminate()
+    server.join()
+    assert(bboxes.shape == (1,6))
+    assert(bboxes2.shape == (1,6))
 
 # ROS 2 will send (to server SUM):
 # - device id
