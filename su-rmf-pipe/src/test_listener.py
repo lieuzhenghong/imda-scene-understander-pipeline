@@ -10,6 +10,8 @@ import time
 import multiprocessing
 import importlib
 
+import random
+
 mockDetector = MagicMock(return_value=[[], []])
 mockModel.detect = mockDetector
 print(mockModel.detect())
@@ -88,10 +90,46 @@ def test_multiple_recv():
     assert(bboxes.shape == (1,6))
     assert(bboxes2.shape == (1,6))
 
-# ROS 2 will send (to server SUM):
-# - device id
-# - time t (unix time) <-- we might have to publish time to not get stale info
-# - location of robot at time t
-# - List[x, y, class] at time t
+@pytest.fixture
+def init_listener():
+    from listener import Listener
+    server_addr = ('localhost', 6000)
+    server = Listener(server_addr, None)
+    return server
 
-# * 10 bytes [ data  ---------------*-->] * 10 bytes [data --------------->]
+def test_recv_header(init_listener):
+    '''
+    Tests that the recv_header method in the Listener class
+    can decode a padded bytestring
+    and return the correct integer
+    '''
+    arbitrary_header_len = 123
+    def mockDataStream(size):
+        return bytes(str(f"{arbitrary_header_len:<{size}}"), 'utf-8')
+    mockConnection = MagicMock()
+    mockConnection.recv = mockDataStream
+
+    init_listener.connection = mockConnection
+    header_len = init_listener.recv_header()
+    assert(header_len == arbitrary_header_len)
+
+def test_recv_all(init_listener):
+    '''
+    Tests that the recv_all method in the Listener class
+    can receive any number of bytes
+    and successfully decode it
+    '''
+    SIZE = 4096
+    class MockConnection():
+        def __init__(self, size):
+            self.left_ptr = 0
+            self.arbitrary_data = bytearray(random.getrandbits(8) for _ in range(size)) 
+        def recv(self, size):
+            r = self.arbitrary_data[self.left_ptr:self.left_ptr+size]
+            self.left_ptr += size
+            return r
+
+    mockConnection = MockConnection(SIZE)
+    init_listener.connection = mockConnection
+    full_data = init_listener.recv_all(SIZE)
+    assert(full_data.read() == mockConnection.arbitrary_data)
