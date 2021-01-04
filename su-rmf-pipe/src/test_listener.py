@@ -16,7 +16,7 @@ mockDetector = MagicMock(return_value=[[], []])
 mockModel.detect = mockDetector
 print(mockModel.detect())
 sys.modules["B1_detect"] = mockModel
-import recv_stream_and_send_to_model as listener
+import mlbbox_listener as listener
 
 
 def test_recv_stream_and_send_to_model_integration():
@@ -32,14 +32,14 @@ def test_recv_stream_and_send_to_model_integration():
     3. returns the correct result
     """
 
-    import send_cam_stream
+    import io_handler
 
     server = multiprocessing.Process(target=listener.main)
     server.start()
 
     server_addr = ("localhost", 6000)
     img = np.random.rand(640, 480, 3)
-    bboxes = send_cam_stream.send_image_to_server(img, server_addr)
+    bboxes = io_handler.send_image_to_server(img, server_addr)
     print(bboxes)
 
     server.terminate()
@@ -56,14 +56,14 @@ def test_recv_stream_and_send_to_model_one_object():
     mockModel.detect = mockDetector
     importlib.reload(listener)
 
-    import send_cam_stream
+    import io_handler
 
     server = multiprocessing.Process(target=listener.main)
     server.start()
 
     server_addr = ("localhost", 6000)
     img = np.random.rand(640, 480, 3)
-    bboxes = send_cam_stream.send_image_to_server(img, server_addr)
+    bboxes = io_handler.send_image_to_server(img, server_addr)
     print(bboxes)
 
     server.terminate()
@@ -79,16 +79,16 @@ def test_multiple_recv():
     mockModel.detect = mockDetector
     importlib.reload(listener)
 
-    import send_cam_stream
+    import io_handler
 
     server = multiprocessing.Process(target=listener.main)
     server.start()
 
     server_addr = ("localhost", 6000)
     img = np.random.rand(640, 480, 3)
-    bboxes = send_cam_stream.send_image_to_server(img, server_addr)
+    bboxes = io_handler.send_image_to_server(img, server_addr)
     print(bboxes)
-    bboxes2 = send_cam_stream.send_image_to_server(img, server_addr)
+    bboxes2 = io_handler.send_image_to_server(img, server_addr)
     print(bboxes2)
 
     server.terminate()
