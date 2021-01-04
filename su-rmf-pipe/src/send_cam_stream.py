@@ -10,9 +10,12 @@ This module sends the image to the server
 from io import BytesIO
 import numpy as np
 from calc_bbox_depths import calculate_bbox_depths
-from send_rabbitmq_bboxes import *
+# from send_rabbitmq_bboxes import *
 import pyrealsense2 as rs
 import socket
+
+from typing import List, Tuple
+BBox = Tuple[int, int, int, int, float, int]
 
 def create_socket() -> socket.socket:
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
