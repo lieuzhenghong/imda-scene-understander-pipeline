@@ -13,12 +13,11 @@ before_script:
 lint_a:
   stage: lint
   script:
-    - cd su-rmf-pipe/src
-    - black --check .
+    - black --check src
 
 # Test with coverage and pytest
 test_a:
   stage: test
   script:
-    - cd su-rmf-pipe/src
-    - coverage run --source=. --omit="test*" -m pytest -sv && coverage report
+    - coverage run --source="/src" --omit="src/test*" -m pytest -sv
+    - coverage report

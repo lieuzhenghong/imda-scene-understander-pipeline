@@ -27,9 +27,10 @@ jobs:
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
     - name: Make sure code passes black lint checking
       run: |
-        cd su-rmf-pipe/src
-        black --check .
+        cd su-rmf-pipe
+        black --check src
     - name: Test with pytest
       run: |
-        cd su-rmf-pipe/src
-        coverage run --source=. --omit="test*" -m pytest -sv && coverage report && coverage html
+        cd su-rmf-pipe
+        coverage run --source="/src" --omit="src/test*" -m pytest -sv
+        coverage report
