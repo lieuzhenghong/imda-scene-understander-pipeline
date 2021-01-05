@@ -11,6 +11,7 @@ before_script:
   - apt-get -yq update
   - apt-get -yq install python3.6
   - which python
+  - which python3
   - ln -s /usr/bin/python3 /usr/local/bin/python36
   - ln -s /usr/bin/python /usr/local/bin/python36
   - which python
