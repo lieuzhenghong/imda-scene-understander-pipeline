@@ -1,0 +1,25 @@
+stages:
+  - build
+  - test
+
+image: "python:3.6.12-buster"
+
+build:
+  stage: build
+  script:
+    - python -m pip install --upgrade pip
+    - if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+# Lint with Black
+test_a:
+  stage: test
+  script:
+    - cd src
+    - black --check .
+
+# Test with coverage and pytest
+test_b:
+  stage: test
+  script:
+    - cd src
+    - coverage run --source=. --omit="test*" -m pytest -sv && coverage report
