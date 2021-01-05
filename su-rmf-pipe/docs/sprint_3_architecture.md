@@ -48,7 +48,7 @@ made up of three parts: message size, message topic, and message payload.
 The first 10 bytes of the message denote the size in bytes of the entire message.
 The next 128 bytes are reserved for topic name (right padded with spaces)
 Topic names to a listener must be unique.
-Finally all subsequent bytes are the payload: the listener must know how to decode this.
+Finally all subsequent bytes are the payload: the listener must know how to decode this conditional on the topic name.
 
 ## What happens every frame on the Jetson NX
 

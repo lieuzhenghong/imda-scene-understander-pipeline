@@ -1,0 +1,31 @@
+Python 3.6.12 is required because that's what runs on the Jetson
+and it's also the version of Python that `pyrealsense2` is built for.
+
+Install `pyenv` (see their GitHub page for details)
+and then install Python 3.6.12
+`pyenv install 3.6.12`
+`pyenv global 3.6.12` 
+and then create a virtual env
+
+then source activate it and then run
+`python3 -m pytest -sv`
+
+I now use a different command called coverage.
+In the virtual environment,
+```pip install coverage```.
+Then `cd src` and run
+```coverage run --source=. --omit="test*" -m pytest && coverage report```
+
+You should see something like the following:
+
+```
+=============== 3 passed in 0.23s ====================
+Name                               Stmts   Miss  Cover
+------------------------------------------------------
+calc_bbox_depths.py                   51     38    25%
+recv_stream_and_send_to_model.py      43     43     0%
+send_cam_stream.py                    73     24    67%
+send_rabbitmq_bboxes.py               23     23     0%
+------------------------------------------------------
+TOTAL                                190    128    33%
+```
