@@ -32,5 +32,5 @@ jobs:
     - name: Test with pytest
       run: |
         cd su-rmf-pipe
-        coverage run --source="/src" --omit="src/test*" -m pytest -sv
+        coverage run --source="src" --omit="src/test*" -m pytest -sv
         coverage report
