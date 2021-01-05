@@ -19,5 +19,5 @@ lint_a:
 test_a:
   stage: test
   script:
-    - coverage run --source="/src" --omit="src/test*" -m pytest -sv
+    - coverage run --source="src" --omit="src/test*" -m pytest -sv
     - coverage report
