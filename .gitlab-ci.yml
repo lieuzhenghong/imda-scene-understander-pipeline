@@ -1,25 +1,23 @@
 stages:
-  - build
+  - lint
   - test
 
 image: "python:3.6.12-buster"
 
-build:
-  stage: build
-  script:
-    - python -m pip install --upgrade pip
-    - cd su-rmf-pipe
-    - if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+before_script:
+  - python -m pip install --upgrade pip
+  - cd su-rmf-pipe
+  - pip install -r requirements.txt
 
 # Lint with Black
-test_a:
-  stage: test
+lint_a:
+  stage: lint
   script:
     - cd su-rmf-pipe/src
     - black --check .
 
 # Test with coverage and pytest
-test_b:
+test_a:
   stage: test
   script:
     - cd su-rmf-pipe/src
