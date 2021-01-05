@@ -5,9 +5,9 @@ name: Python testing
 
 on:
   push:
-    branches: [ dev ]
+    branches: [ dev, master ]
   pull_request:
-    branches: [ dev ]
+    branches: [ dev, master ]
 
 jobs:
   build:
@@ -25,6 +25,10 @@ jobs:
         python -m pip install --upgrade pip
         cd su-rmf-pipe
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+    - name: Make sure code passes black lint checking
+      run: |
+        cd su-rmf-pipe/src
+        black --check .
     - name: Test with pytest
       run: |
         cd su-rmf-pipe/src
