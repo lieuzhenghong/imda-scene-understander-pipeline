@@ -2,9 +2,19 @@ stages:
   - lint
   - test
 
-image: "python:3.6.12-buster"
+image: "ubuntu:latest"
 
 before_script:
+  - apt-get -yq update
+  - apt-get -yq install software-properties-common
+  - add-apt-repository -y ppa:deadsnakes/ppa
+  - apt-get -yq update
+  - apt-get -yq install python3.6
+  - apt-get -yq install python3.6-venv
+  - python3.6 -V
+  - python3.6 -m venv py36env
+  - source py36env/bin/activate
+  - python -V
   - python -m pip install --upgrade pip
   - cd su-rmf-pipe
   - pip install -r requirements.txt
@@ -19,6 +29,6 @@ lint_a:
 test_a:
   stage: test
   script:
-    - apt install libusb-1.0-0
+    - apt-get -yq install libusb-1.0-0
     - coverage run --source="src" --omit="src/test*" -m pytest -sv
     - coverage report
