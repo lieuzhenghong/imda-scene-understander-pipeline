@@ -27,5 +27,5 @@ jobs:
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
     - name: Test with pytest
       run: |
-        cd src
+        cd su-rmf-pipe/src
         coverage run --source=. --omit="test*" -m pytest -sv && coverage report && coverage html
